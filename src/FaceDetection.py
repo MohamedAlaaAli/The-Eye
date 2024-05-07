@@ -12,7 +12,7 @@ class OfflineFaceDetection:
         self.image = image
 
 
-    def detect_faces(self, scale_factor= 1.1, min_neighbours = 5, minSize = 100):
+    def detect_faces(self, image, scale_factor= 1.1, min_neighbours = 5, minSize = 100):
         """
         Detects faces in an image using the Viola-Jones algorithm.
         https://en.wikipedia.org/wiki/Viola%E2%80%93Jones_object_detection_framework
@@ -24,6 +24,7 @@ class OfflineFaceDetection:
         Returns:
             list: A list of tuples containing the coordinates of the detected faces.
         """
+        self.image = image
         gray = cv2.cvtColor(self.image.copy(), cv2.COLOR_BGR2GRAY)
         # Detect faces
         faces = self.face_cascade.detectMultiScale(gray, scaleFactor=scale_factor, minNeighbors=min_neighbours, minSize=(minSize, minSize))
@@ -54,7 +55,6 @@ class OfflineFaceDetection:
                 cv2.imwrite(output_path, segmented_image)
                 print(f"Image saved at {output_path}")
             
-            print("Done")
             return segmented_image
         
         except Exception as e:
@@ -63,22 +63,19 @@ class OfflineFaceDetection:
 
 
 class OnlineFaceDetection(OfflineFaceDetection):
-    def __init__(self, cascade_path, image_viewport):
+    def __init__(self, cascade_path):
         """
-        Initialize the OnlineFaceDetection object.
+        Initialize the FaceDetection object with the path to the Haar cascade file.
 
         Parameters:
         cascade_path (str): Path to the Haar cascade XML file for face detection.
-        image_viewport (ImageViewport): Instance of the ImageViewport class for displaying frames.
         """
-        super().__init__()
-        self.image_viewport = image_viewport
+        super(OnlineFaceDetection, self).__init__(cascade_path)
 
-    def run_face_detection(self):
+
+    def run_face_detection(self, image_port):
         """
-        Opens the default camera, captures frames, performs face detection, 
-        displays the frame with detected faces, and releases the camera.
-        No parameters. No return value.
+        Run the face detection in real-time using the webcam.
         """
         # Open the default camera (usually webcam)
         cap = cv2.VideoCapture(0)
@@ -88,21 +85,14 @@ class OnlineFaceDetection(OfflineFaceDetection):
             ret, frame = cap.read()
 
             # Perform face detection and draw rectangles around faces
-            frame_with_faces = self.draw_faces(frame)
-
-            # Display the resulting frame with detected faces in ImageViewport
-            self.image_viewport.set_image(None, camera_index=0)
-            self.image_viewport.original_img = frame_with_faces  # Set the frame with detected faces
-            self.image_viewport.update_display()
-
-            # Break the loop if 'q' is pressed
+            faces = self.detect_faces(frame)
+            frame_with_faces = self.draw_faces(faces)
+            image_port.set_frame(frame_with_faces)
+            
+            # Check for key press
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-
-        # Release the camera and close all windows
-        cap.release()
-        cv2.destroyAllWindows()
-
+            
 
 
 def offline_detctetion():

@@ -4,6 +4,7 @@ from PyQt6.QtGui import QIcon
 import sys
 from src.ViewPort import ImageViewport
 from src.FaceDetection import OnlineFaceDetection, OfflineFaceDetection
+import cv2
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -158,6 +159,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def radioToggled(self):
+        import time
         if self.ui.offlineRadio.isChecked():
             self.ui.inputLabel.show()
             self.ui.input1.show()
@@ -166,7 +168,9 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.ui.inputLabel.hide()
             self.ui.input1.hide()
+            time.sleep(0.5)
             self.apply_online_face_detection()
+        # self.apply_face_detection()
 
 
     def update_label_text(self):
@@ -229,7 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         face_detector = OfflineFaceDetection(image, cascade_path)
         faces = face_detector.detect_faces(
-            scale_factor= scale_factor, min_neighbours = neighbours_min, minSize = window_min)
+            image, scale_factor= scale_factor, min_neighbours = neighbours_min, minSize = window_min)
         detected_image = face_detector.draw_faces(faces)
 
         self.out_ports[0].original_img = detected_image
@@ -237,13 +241,13 @@ class MainWindow(QtWidgets.QMainWindow):
         
 
     def apply_online_face_detection(self):
+        window_min, scale_factor, neighbours_min = self.get_detection_parameters()
         cascade_path = 'haarcascade_frontalface_default.xml'  # Path to the Haar cascade XML file
         image_viewport = self.out_ports[0]
-        # image_viewport.clear()
-        # image_viewport.set_image("Images/PART1.mp4")
-        face_detector = OnlineFaceDetection(cascade_path, image_viewport)
-        face_detector.run_face_detection()
-
+        image_viewport.clear()
+        face_detector = OnlineFaceDetection(cascade_path)
+        face_detector.run_face_detection(image_viewport)
+  
 
     def show_error_message(self, message):
         msg_box = QMessageBox()

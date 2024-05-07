@@ -15,7 +15,7 @@ class ImageViewport(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_display)
 
-    def set_image(self, path, grey_flag=False, camera_index=None):
+    def set_image(self, path, grey_flag=False):
         """
         Set the image or video for the object.
 
@@ -26,36 +26,44 @@ class ImageViewport(QWidget):
         Returns:
             None
         """
-        if path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
-            self.image_path = path
-            image = cv2.imread(path)
-            if not grey_flag:
-                # Convert BGR to RGB
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-            else:
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            self.original_img = image
-            self.video_path = None
-            self.timer.stop()
-            
-        elif path.lower().endswith(('.mp4', '.avi')):
-            self.video_path = path
-            self.video_capture = cv2.VideoCapture(path)
-            self.timer.start(63)  # 30 frames per second (approximately)
-            self.image_path = None
-
-        elif camera_index is not None:
-            self.video_capture = cv2.VideoCapture(camera_index)
-            self.timer.start(33)  # Update every ~33 milliseconds (30 frames per second)
-            self.image_path = None
-            self.video_path = None
+        if path:
+            if path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+                self.image_path = path
+                image = cv2.imread(path)
+                if not grey_flag:
+                    # Convert BGR to RGB
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                else:
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                self.original_img = image
+                self.video_path = None
+                self.timer.stop()
+            elif path.lower().endswith(('.mp4', '.avi')):
+                self.video_path = path
+                self.video_capture = cv2.VideoCapture(path)
+                self.timer.start(33)  # 30 frames per second (approximately)
+                self.image_path = None
         else:
             logging.error("No file path or camera index provided.")
             return
 
         self.update_display()
 
+    def set_frame(self, frame):
+        """
+        Set a single frame to be displayed.
+
+        Args:
+            frame (numpy.ndarray): The frame to display.
+
+        Returns:
+            None
+        """
+        if frame is not None:
+            self.original_img = frame
+            self.image_path = None
+            self.video_path = None
+            self.repaint()
 
     def update_display(self):
         """
@@ -71,7 +79,6 @@ class ImageViewport(QWidget):
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 self.original_img = frame
                 self.repaint()
-
 
     def paintEvent(self, event):
         """
@@ -121,6 +128,7 @@ class ImageViewport(QWidget):
         self.original_img = None
         self.timer.stop()
         self.repaint()
+
 
 
 # from PyQt6.QtWidgets import QWidget
