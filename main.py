@@ -2,9 +2,7 @@ from PyQt6 import QtWidgets, uic
 from PyQt6.QtWidgets import QVBoxLayout, QFileDialog, QMessageBox
 from PyQt6.QtGui import QIcon
 import sys
-import cv2
-import numpy as np
-from src.imageViewPort import ImageViewport
+from ViewPort import ImageViewport
 from src.FaceDetection import OnlineFaceDetection, OfflineFaceDetection
 
 
@@ -28,6 +26,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_label_text()
         self.ui.detectFaces.clicked.connect(self.apply_face_detection)
         self.ui.offlineRadio.setChecked(True)
+        self.ui.offlineRadio.toggled.connect(self.radioToggled)
+        self.ui.onlineRadio.toggled.connect(self.radioToggled)
         self.ui.windowSlider.valueChanged.connect(self.update_label_text)
         self.ui.neighboursSlider.valueChanged.connect(self.update_label_text)
 
@@ -157,6 +157,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.neighboursSlider.setValue(2)
 
 
+    def radioToggled(self):
+        if self.ui.offlineRadio.isChecked():
+            self.ui.inputLabel.show()
+            self.ui.input1.show()
+        
+        else:
+            self.ui.inputLabel.hide()
+            self.ui.input1.hide()
+
+
     def update_label_text(self):
         """
         Updates the label text based on the current value of the sliders.
@@ -226,9 +236,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def apply_online_face_detection(self):
         cascade_path = 'haarcascade_frontalface_default.xml'  # Path to the Haar cascade XML file
-        face_detector = OnlineFaceDetection(cascade_path)
+        image_viewport = self.out_ports[0]
+        face_detector = OnlineFaceDetection(cascade_path, image_viewport)
         face_detector.run_face_detection()
-        
+
 
     def show_error_message(self, message):
         msg_box = QMessageBox()

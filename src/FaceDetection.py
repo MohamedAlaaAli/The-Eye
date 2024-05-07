@@ -52,14 +52,15 @@ class OfflineFaceDetection:
 
 
 class OnlineFaceDetection(OfflineFaceDetection):
-    def __init__(self, cascade_path):
+    def __init__(self, cascade_path, image_viewport):
         """
         Initialize the FaceDetection object with the path to the Haar cascade file.
 
         Parameters:
         cascade_path (str): Path to the Haar cascade XML file for face detection.
         """
-        self.face_cascade = cv2.CascadeClassifier(cascade_path)
+        super().__init__(cascade_path)
+        self.image_viewport = image_viewport
 
     def run_face_detection(self):
         """
@@ -77,8 +78,10 @@ class OnlineFaceDetection(OfflineFaceDetection):
             # Perform face detection and draw rectangles around faces
             frame_with_faces = self.draw_faces(frame)
 
-            # Display the resulting frame
-            cv2.imshow('Face Detection', frame_with_faces)
+            # Display the resulting frame with detected faces in ImageViewport
+            self.image_viewport.set_image(None, camera_index=0)
+            self.image_viewport.original_img = frame_with_faces  # Set the frame with detected faces
+            self.image_viewport.update_display()
 
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -89,10 +92,6 @@ class OnlineFaceDetection(OfflineFaceDetection):
         cv2.destroyAllWindows()
 
 
-def online_detection():
-    cascade_path = 'haarcascade_frontalface_default.xml'  # Path to the Haar cascade XML file
-    face_detector = OnlineFaceDetection(cascade_path)
-    face_detector.run_face_detection()
 
 def offline_detctetion():
     cascade_path = 'Classifier\haarcascade_frontalface_default.xml'  # Path to the Haar cascade XML file
