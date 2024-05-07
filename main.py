@@ -161,6 +161,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.ui.offlineRadio.isChecked():
             self.ui.inputLabel.show()
             self.ui.input1.show()
+            self.out_ports[0].clear()
         
         else:
             self.ui.inputLabel.hide()
@@ -238,6 +239,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def apply_online_face_detection(self):
         cascade_path = 'haarcascade_frontalface_default.xml'  # Path to the Haar cascade XML file
         image_viewport = self.out_ports[0]
+        # image_viewport.clear()
+        # image_viewport.set_image("Images/PART1.mp4")
         face_detector = OnlineFaceDetection(cascade_path, image_viewport)
         face_detector.run_face_detection()
 

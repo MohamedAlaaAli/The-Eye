@@ -41,14 +41,25 @@ class OfflineFaceDetection:
         Returns:
         segmented_image: The image with rectangles drawn around the detected faces.
         """
-        # Draw rectangles around the faces
-        for (x, y, w, h) in faces:
-            segmented_image = cv2.rectangle(self.image, pt1=(x, y), pt2=(x+w, y+h), color= (0, 255, 0), thickness= 5)
-        # Save or display the result
-        if output_path:
-            cv2.imwrite(output_path, segmented_image)
-        print("Done")
-        return segmented_image
+        try:
+            # Initialize segmented_image
+            segmented_image = self.image.copy()
+            
+            # Draw rectangles around the faces
+            for (x, y, w, h) in faces:
+                cv2.rectangle(segmented_image, pt1=(x, y), pt2=(x+w, y+h), color=(0, 255, 0), thickness=5)
+            
+            # Save or display the result
+            if output_path:
+                cv2.imwrite(output_path, segmented_image)
+                print(f"Image saved at {output_path}")
+            
+            print("Done")
+            return segmented_image
+        
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
 
 
 class OnlineFaceDetection(OfflineFaceDetection):
