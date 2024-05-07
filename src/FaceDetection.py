@@ -1,7 +1,7 @@
 import cv2
 
 class OfflineFaceDetection:
-    def __init__(self, image, cascade_path):
+    def __init__(self, image = None, cascade_path = "Classifier/haarcascade_frontalface_default.xml"):
         """
         Initialize the FaceDetection object with the path to the Haar cascade file.
 
@@ -54,12 +54,13 @@ class OfflineFaceDetection:
 class OnlineFaceDetection(OfflineFaceDetection):
     def __init__(self, cascade_path, image_viewport):
         """
-        Initialize the FaceDetection object with the path to the Haar cascade file.
+        Initialize the OnlineFaceDetection object.
 
         Parameters:
         cascade_path (str): Path to the Haar cascade XML file for face detection.
+        image_viewport (ImageViewport): Instance of the ImageViewport class for displaying frames.
         """
-        super().__init__(cascade_path)
+        super().__init__()
         self.image_viewport = image_viewport
 
     def run_face_detection(self):

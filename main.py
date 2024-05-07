@@ -2,7 +2,7 @@ from PyQt6 import QtWidgets, uic
 from PyQt6.QtWidgets import QVBoxLayout, QFileDialog, QMessageBox
 from PyQt6.QtGui import QIcon
 import sys
-from ViewPort import ImageViewport
+from src.ViewPort import ImageViewport
 from src.FaceDetection import OnlineFaceDetection, OfflineFaceDetection
 
 
@@ -165,6 +165,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.ui.inputLabel.hide()
             self.ui.input1.hide()
+            self.apply_online_face_detection()
 
 
     def update_label_text(self):
