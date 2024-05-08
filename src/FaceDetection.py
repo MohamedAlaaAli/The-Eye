@@ -24,12 +24,17 @@ class OfflineFaceDetection:
         Returns:
             list: A list of tuples containing the coordinates of the detected faces.
         """
-        self.image = image
-        gray = cv2.cvtColor(self.image.copy(), cv2.COLOR_BGR2GRAY)
-        # Detect faces
-        faces = self.face_cascade.detectMultiScale(gray, scaleFactor=scale_factor, minNeighbors=min_neighbours, minSize=(minSize, minSize))
-        return faces
-
+        try:
+            self.image = image
+            gray = cv2.cvtColor(self.image.copy(), cv2.COLOR_BGR2GRAY)
+            # Detect faces
+            faces = self.face_cascade.detectMultiScale(gray, scaleFactor=scale_factor, minNeighbors=min_neighbours, minSize=(minSize, minSize))
+            return faces
+        
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
+        
 
     def draw_faces(self, faces, output_path=False):
         """
@@ -88,7 +93,6 @@ class OnlineFaceDetection(OfflineFaceDetection):
             faces = self.detect_faces(frame)
             frame_with_faces = self.draw_faces(faces)
             image_port.set_frame(frame_with_faces)
-            
             # Check for key press
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

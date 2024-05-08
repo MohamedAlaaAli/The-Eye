@@ -1,5 +1,5 @@
 from PyQt6 import QtWidgets, uic
-from PyQt6.QtWidgets import QVBoxLayout, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QVBoxLayout, QFileDialog, QMessageBox, QInputDialog
 from PyQt6.QtGui import QIcon
 import sys
 from src.ViewPort import ImageViewport
@@ -220,10 +220,52 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.apply_online_face_detection()
 
+    def validate_parameter(self, lineEdit, parameter, param_type=int):
+        """
+        Validates the parameter entered by the user.
+
+        Args:
+            lineEdit (QLineEdit): The QLineEdit widget for the parameter.
+            parameter (str): The name of the parameter being validated.
+            param_type (type): The type of parameter to validate (int or float). Defaults to int.
+
+        Returns:
+            int or float or None: The valid parameter value entered by the user, or None if the user cancels the input dialog.
+        """
+        # parameter = None
+
+        while True:
+            try:
+                parameter_ = param_type(lineEdit.text())
+                if parameter_ < 0:
+                    raise ValueError
+            except ValueError:
+                self.show_error_message(f"{parameter} must be a positive {'integer' if param_type == int else 'float'}.")
+
+                # Prompt user to enter a different parameter
+                if param_type == int:
+                    parameter_, ok = QInputDialog.getInt(self, f"Enter {parameter}", "Please enter a positive integer:")
+                else:
+                    parameter_, ok = QInputDialog.getDouble(self, f"Enter {parameter}", "Please enter a positive float:")
+
+                if ok:
+                    lineEdit.setText(str(parameter_))
+                    continue  # Retry with the new parameter
+                else:
+                    return None  # Return None if user cancels
+            else:
+                break  # Valid parameter, exit loop
+        return parameter_
+
+
     def get_detection_parameters(self):
         window_min = int(self.ui.windowSlider.value())
         neighbours_min = int(self.ui.neighboursSlider.value())
-        scale_factor = float(self.ui.scaleFactor_val.text())
+        scale_factor = self.validate_parameter(self.ui.scaleFactor_val, "scale Factor", float)
+
+        if not scale_factor:
+            self.show_error_message("please enter Scale Factor ")
+
         return window_min, scale_factor, neighbours_min
 
     def apply_offline_face_detection(self):
@@ -241,7 +283,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
 
     def apply_online_face_detection(self):
-        window_min, scale_factor, neighbours_min = self.get_detection_parameters()
         cascade_path = 'haarcascade_frontalface_default.xml'  # Path to the Haar cascade XML file
         image_viewport = self.out_ports[0]
         image_viewport.clear()

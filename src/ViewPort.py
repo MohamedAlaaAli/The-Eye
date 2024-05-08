@@ -60,7 +60,8 @@ class ImageViewport(QWidget):
             None
         """
         if frame is not None:
-            self.original_img = frame
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.original_img = frame_rgb
             self.image_path = None
             self.video_path = None
             self.repaint()
