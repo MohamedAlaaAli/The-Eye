@@ -13,6 +13,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cascade_path = "Classifier/haarcascade_frontalface_default.xml"
         self.offline_face_detector = OfflineFaceDetection(self.cascade_path)
         self.online_face_detector = OnlineFaceDetection(self.cascade_path)
+        self.detection_img = None
 
    
     def init_ui(self):
@@ -176,8 +177,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.input1.hide()
             # Assuming self.ui.prop_frame is a QVBoxLayout
             self.ui.prop_frame.hide()
-            
-
             self.apply_online_face_detection()
 
 
@@ -277,19 +276,20 @@ class MainWindow(QtWidgets.QMainWindow):
         return window_min, scale_factor, neighbours_min
 
     def apply_offline_face_detection(self):
-        if self.online_face_detector.is_running:
-            print("Stopping online face detector")
-            self.online_face_detector.stop_face_detection()
+        if self.detection_img is not None:
+            if self.online_face_detector.is_running:
+                print("Stopping online face detector")
+                self.online_face_detector.stop_face_detection()
 
-        window_min, scale_factor, neighbours_min = self.get_detection_parameters()
-        image = self.input_ports[0].original_img.copy()
+            window_min, scale_factor, neighbours_min = self.get_detection_parameters()
+            image = self.detection_img
 
-        faces = self.offline_face_detector.detect_faces(
-            image, scale_factor= scale_factor, min_neighbours = neighbours_min, minSize = window_min)
-        detected_image = self.offline_face_detector.draw_faces(image, faces)
+            faces = self.offline_face_detector.detect_faces(
+                image, scale_factor= scale_factor, min_neighbours = neighbours_min, minSize = window_min)
+            detected_image = self.offline_face_detector.draw_faces(image, faces)
 
-        self.out_ports[0].original_img = detected_image
-        self.out_ports[0].update_display()
+            self.out_ports[0].original_img = detected_image
+            self.out_ports[0].update_display()
         
 
     def apply_online_face_detection(self):
@@ -332,6 +332,7 @@ class MainWindow(QtWidgets.QMainWindow):
             input_port.set_image(self.image_path)
             output_port = self.out_ports[index]
             output_port.set_image(self.image_path, grey_flag=True)
+            self.detection_img = input_port.original_img.copy()
 
 
 
