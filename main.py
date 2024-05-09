@@ -4,14 +4,15 @@ from PyQt6.QtGui import QIcon
 import sys
 from src.ViewPort import ImageViewport
 from src.FaceDetection import OnlineFaceDetection, OfflineFaceDetection
-import cv2
-
 
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.init_ui()
+        self.cascade_path = "Classifier/haarcascade_frontalface_default.xml"
+        self.offline_face_detector = OfflineFaceDetection(self.cascade_path)
+        self.online_face_detector = OnlineFaceDetection(self.cascade_path)
 
    
     def init_ui(self):
@@ -19,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Initialize the UI by loading the UI page, setting the window title, loading UI elements, and checking a specific UI element.
         """
         # Load the UI Page
-        self.ui = uic.loadUi('Mainwindow.ui', self)
+        self.ui = uic.loadUi('Mainwindow2.ui', self)
         self.setWindowTitle("Image Processing ToolBox")
         self.setWindowIcon(QIcon("icons/image-layer-svgrepo-com.png"))
         self.load_ui_elements()
@@ -159,18 +160,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def radioToggled(self):
-        import time
         if self.ui.offlineRadio.isChecked():
             self.ui.inputLabel.show()
             self.ui.input1.show()
+            self.ui.prop_frame.show()
+            self.input_ports[0].clear()
             self.out_ports[0].clear()
+
+            if self.online_face_detector.is_running:
+                print("Stopping online face detector")
+                self.online_face_detector.stop_face_detection()
         
         else:
             self.ui.inputLabel.hide()
             self.ui.input1.hide()
-            time.sleep(0.5)
+            # Assuming self.ui.prop_frame is a QVBoxLayout
+            self.ui.prop_frame.hide()
+            
+
             self.apply_online_face_detection()
-        # self.apply_face_detection()
 
 
     def update_label_text(self):
@@ -220,7 +228,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.apply_online_face_detection()
 
-    def validate_parameter(self, lineEdit, parameter, param_type=int):
+    def validate_parameter(self, lineEdit, parameter_name, param_type=int):
         """
         Validates the parameter entered by the user.
 
@@ -237,16 +245,16 @@ class MainWindow(QtWidgets.QMainWindow):
         while True:
             try:
                 parameter_ = param_type(lineEdit.text())
-                if parameter_ < 0:
+                if  parameter_ < 1 or parameter_ > 3:
                     raise ValueError
             except ValueError:
-                self.show_error_message(f"{parameter} must be a positive {'integer' if param_type == int else 'float'}.")
+                self.show_error_message(f"{parameter_name} must be i range [1, 3] {'integer' if param_type == int else 'float'}.")
 
                 # Prompt user to enter a different parameter
                 if param_type == int:
-                    parameter_, ok = QInputDialog.getInt(self, f"Enter {parameter}", "Please enter a positive integer:")
+                    parameter_, ok = QInputDialog.getInt(self, f"Enter {parameter_name}", "Please enter a positive integer:")
                 else:
-                    parameter_, ok = QInputDialog.getDouble(self, f"Enter {parameter}", "Please enter a positive float:")
+                    parameter_, ok = QInputDialog.getDouble(self, f"Enter {parameter_name}", "Please enter a positive float:")
 
                 if ok:
                     lineEdit.setText(str(parameter_))
@@ -269,25 +277,25 @@ class MainWindow(QtWidgets.QMainWindow):
         return window_min, scale_factor, neighbours_min
 
     def apply_offline_face_detection(self):
+        if self.online_face_detector.is_running:
+            print("Stopping online face detector")
+            self.online_face_detector.stop_face_detection()
+
         window_min, scale_factor, neighbours_min = self.get_detection_parameters()
-        cascade_path = "Classifier/haarcascade_frontalface_default.xml"
         image = self.input_ports[0].original_img.copy()
 
-        face_detector = OfflineFaceDetection(image, cascade_path)
-        faces = face_detector.detect_faces(
+        faces = self.offline_face_detector.detect_faces(
             image, scale_factor= scale_factor, min_neighbours = neighbours_min, minSize = window_min)
-        detected_image = face_detector.draw_faces(faces)
+        detected_image = self.offline_face_detector.draw_faces(image, faces)
 
         self.out_ports[0].original_img = detected_image
         self.out_ports[0].update_display()
         
 
     def apply_online_face_detection(self):
-        cascade_path = 'haarcascade_frontalface_default.xml'  # Path to the Haar cascade XML file
         image_viewport = self.out_ports[0]
         image_viewport.clear()
-        face_detector = OnlineFaceDetection(cascade_path)
-        face_detector.run_face_detection(image_viewport)
+        self.online_face_detector.run_face_detection(image_viewport)
   
 
     def show_error_message(self, message):

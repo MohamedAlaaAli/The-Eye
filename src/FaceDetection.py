@@ -1,7 +1,7 @@
 import cv2
 
 class OfflineFaceDetection:
-    def __init__(self, image = None, cascade_path = "Classifier/haarcascade_frontalface_default.xml"):
+    def __init__(self, cascade_path = "Classifier/haarcascade_frontalface_default.xml"):
         """
         Initialize the FaceDetection object with the path to the Haar cascade file.
 
@@ -9,7 +9,6 @@ class OfflineFaceDetection:
         cascade_path (str): Path to the Haar cascade XML file for face detection.
         """
         self.face_cascade = cv2.CascadeClassifier(cascade_path)
-        self.image = image
 
 
     def detect_faces(self, image, scale_factor= 1.1, min_neighbours = 5, minSize = 100):
@@ -36,7 +35,7 @@ class OfflineFaceDetection:
             return None
         
 
-    def draw_faces(self, faces, output_path=False):
+    def draw_faces(self, image,  faces, output_path=False):
         """
         Draw rectangles around the detected faces and save or display the result.
 
@@ -49,7 +48,7 @@ class OfflineFaceDetection:
         """
         try:
             # Initialize segmented_image
-            segmented_image = self.image.copy()
+            segmented_image = image
             
             # Draw rectangles around the faces
             for (x, y, w, h) in faces:
@@ -69,35 +68,35 @@ class OfflineFaceDetection:
 
 class OnlineFaceDetection(OfflineFaceDetection):
     def __init__(self, cascade_path):
-        """
-        Initialize the FaceDetection object with the path to the Haar cascade file.
-
-        Parameters:
-        cascade_path (str): Path to the Haar cascade XML file for face detection.
-        """
         super(OnlineFaceDetection, self).__init__(cascade_path)
-
+        self.is_running = False  # Flag to control the loop
 
     def run_face_detection(self, image_port):
-        """
-        Run the face detection in real-time using the webcam.
-        """
-        # Open the default camera (usually webcam)
         cap = cv2.VideoCapture(0)
+        self.is_running = True  # Set the flag to indicate that face detection is running
 
-        while True:
-            # Capture frame-by-frame
+        while self.is_running:  # Continue looping while the flag is True
             ret, frame = cap.read()
 
-            # Perform face detection and draw rectangles around faces
             faces = self.detect_faces(frame)
-            frame_with_faces = self.draw_faces(faces)
+            frame_with_faces = self.draw_faces(frame, faces)
             image_port.set_frame(frame_with_faces)
-            # Check for key press
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-            
 
+            # Check for a condition to stop the loop
+            # For example, you can add a key press event to stop face detection
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):  # Press 'q' key to quit
+                break
+
+        # Release the webcam and clean up
+        cap.release()
+        cv2.destroyAllWindows()
+
+    def stop_face_detection(self):
+        self.is_running = False  # Set the flag to False to stop the loop
+
+            
+            
 
 def offline_detctetion():
     cascade_path = 'Classifier\haarcascade_frontalface_default.xml'  # Path to the Haar cascade XML file
