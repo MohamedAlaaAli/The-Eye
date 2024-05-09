@@ -222,10 +222,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def apply_face_detection(self):
+        """
+        Applies face detection based on the radio button selection (offline or online).
+        """
         if self.ui.offlineRadio.isChecked():
             self.apply_offline_face_detection()
         else:
             self.apply_online_face_detection()
+
 
     def validate_parameter(self, lineEdit, parameter_name, param_type=int):
         """
@@ -266,23 +270,32 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def get_detection_parameters(self):
+        """
+        Retrieves the detection parameters for window size, scale factor, and number of neighbors.
+
+        :return: A tuple containing the window size, scale factor, and number of neighbors.
+        :rtype: tuple
+        """
         window_min = int(self.ui.windowSlider.value())
         neighbours_min = int(self.ui.neighboursSlider.value())
         scale_factor = self.validate_parameter(self.ui.scaleFactor_val, "scale Factor", float)
 
         if not scale_factor:
             self.show_error_message("please enter Scale Factor ")
+            scale_factor = 1.1
 
         return window_min, scale_factor, neighbours_min
 
+
     def apply_offline_face_detection(self):
+
         if self.detection_img is not None:
             if self.online_face_detector.is_running:
                 print("Stopping online face detector")
                 self.online_face_detector.stop_face_detection()
 
             window_min, scale_factor, neighbours_min = self.get_detection_parameters()
-            image = self.detection_img
+            image = self.detection_img.copy()
 
             faces = self.offline_face_detector.detect_faces(
                 image, scale_factor= scale_factor, min_neighbours = neighbours_min, minSize = window_min)
@@ -293,6 +306,18 @@ class MainWindow(QtWidgets.QMainWindow):
         
 
     def apply_online_face_detection(self):
+        """
+        Apply online face detection to the first output viewport.
+
+        This function clears the current image in the output viewport and then runs the online face detection algorithm on the image. 
+        The results of the face detection are displayed in the output viewport.
+
+        Parameters:
+            self (object): The instance of the class.
+
+        Returns:
+            None
+        """
         image_viewport = self.out_ports[0]
         image_viewport.clear()
         self.online_face_detector.run_face_detection(image_viewport)
