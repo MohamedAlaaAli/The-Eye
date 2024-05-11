@@ -40,9 +40,13 @@ class EigenFaceRecognition:
             pca = pickle.load(f)
         projected_images = np.load("../projected_images.npy")
 
-        classifier = SVC(kernel='rbf')  # Use SVM with a radial basis function kernel
-        classifier.fit(projected_images, labels)
-        return pca, classifier
+        svm_classifier = SVC(kernel='rbf')  # Use SVM with a radial basis function kernel
+        svm_classifier.fit(projected_images, labels)
+
+        with open("Classifier\SVM_model.pkl", 'wb') as f:
+            pickle.dump(svm_classifier, f)
+
+        return pca, svm_classifier
 
     def recognize_faces(self, pca, classifier, test_image):
         try:
