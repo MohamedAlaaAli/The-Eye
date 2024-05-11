@@ -1,133 +1,157 @@
 import os
 import cv2
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
-from imutils import paths
-import dlib
+from FaceDetection import OfflineFaceDetection
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+import pickle
 
 class EigenFaceRecognition:
-    def __init__(self, data_dir, num_components=80):
-        """
-        Initialize the EigenFaceRecognition object.
+    def __init__(self, faces_dir, test_dir):
+        self.faces_dir = faces_dir
+        self.test_dirs = test_dir
 
-        Parameters:
-        data_dir (str): Path to the directory containing the dataset of images.
-        num_components (int): Number of principal components to retain for PCA.
-        """
-        self.data_dir = data_dir
-        self.num_components = num_components
-        self.labels = []
-        self.face_data = []
-        self.names = {}
-        self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+    def preprocess_images(self):
+        preprocessed_images = []
+        labels = []
+        for label, person_dir in enumerate(os.listdir(self.faces_dir)):
+            person_path = os.path.join(self.faces_dir, person_dir)
+            if os.path.isdir(person_path):
+                for filename in os.listdir(person_path):
+                    img_path = os.path.join(person_path, filename)
+                    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                    if img is not None:
+                        img = cv2.resize(img, (500, 500))
+                        preprocessed_images.append(img.flatten())
+                        labels.append(label)
+                    else:
+                        print(f"Warning: Unable to read image '{img_path}'. Skipping...")
+        if not preprocessed_images:
+            print("Error: No valid images found in the specified directory.")
+            return None, None
+        return np.array(preprocessed_images), np.array(labels)
 
-    def prepare_dataset(self):
-        """
-        Load images from the dataset directory and prepare the data for training.
-        """
-        image_paths = list(paths.list_images(self.data_dir))
-        for i, image_path in enumerate(image_paths):
-            name = os.path.basename(os.path.dirname(image_path))
-            if name not in self.names:
-                self.names[name] = len(self.names)
-            label = self.names[name]
-            img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-            img = self.align_face(img)
-            self.labels.append(label)
-            self.face_data.append(img)
+    def train_classifier(self, labels):
+        pca = None
+        # Load PCA object from file
+        with open('../pca_model.pkl', 'rb') as f:
+            pca = pickle.load(f)
+        projected_images = np.load("../projected_images.npy")
 
-    def align_face(self, img):
-        """
-        Detect and align the face in the image.
+        classifier = SVC(kernel='rbf')  # Use SVM with a radial basis function kernel
+        classifier.fit(projected_images, labels)
+        return pca, classifier
 
-        Parameters:
-        img (numpy.ndarray): Input image.
+    def recognize_faces(self, pca, classifier, test_image):
+        try:
+            # Resize and preprocess the test image
+            preprocessed_test_image = cv2.resize(test_image, (500, 500)).flatten().reshape(1, -1)
 
-        Returns:
-        numpy.ndarray: Aligned face image.
-        """
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        rects = self.detector(gray, 1)
-        if len(rects) > 0:
-            shape = self.predictor(gray, rects[0])
-            shape = np.array([[p.x, p.y] for p in shape.parts()])
-            left_eye = shape[36:42]
-            right_eye = shape[42:48]
-            left_eye_center = left_eye.mean(axis=0).astype("int")
-            right_eye_center = right_eye.mean(axis=0).astype("int")
-            dY = right_eye_center[1] - left_eye_center[1]
-            dX = right_eye_center[0] - left_eye_center[0]
-            angle = np.degrees(np.arctan2(dY, dX)) - 180
-            desired_right_eye_x = 1 - 0.35
-            desired_dist = desired_right_eye_x - 0.65
-            desired_dist *= 150
-            eyes_center = ((left_eye_center[0] + right_eye_center[0]) // 2, (left_eye_center[1] + right_eye_center[1]) // 2)
-            M = cv2.getRotationMatrix2D(eyes_center, angle, 1)
-            tX = 0
-            tY = 0
-            M[0, 2] += (tX - eyes_center[0])
-            M[1, 2] += (tY - eyes_center[1])
-            (w, h) = (150, 150)
-            output = cv2.warpAffine(gray, M, (w, h), flags=cv2.INTER_CUBIC)
-            return output
-        return img
+            # Project the test image onto the eigenfaces
+            projected_test_image = pca.transform(preprocessed_test_image)
 
-    def train(self):
-        """
-        Train the face recognition model using Eigenfaces.
-        """
-        self.prepare_dataset()
-        self.face_data = np.array(self.face_data)
-        self.labels = np.array(self.labels)
+            # Predict the label using the trained classifier
+            predicted_label = classifier.predict(projected_test_image)
+            return predicted_label
 
-        # Perform PCA
-        pca = PCA(n_components=self.num_components)
-        pca.fit(self.face_data)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
 
-        # Project face data to PCA subspace
-        self.projected_data = pca.transform(self.face_data)
+    def calculate_roc_curves_for_classes(self, pca, classifier, test_data, test_labels):
+        roc_curves = {}
 
-        # Train SVM classifier
-        self.svm = SVC(kernel='linear', probability=True)
-        self.svm.fit(self.projected_data, self.labels)
+        # Project the test data onto the eigenfaces
+        projected_test_data = pca.transform(test_data)
+        test_labels = np.array(test_labels)
+        # Iterate over each class
+        for class_label in range(len(classifier.classes_)):
+            # Create binary labels (1 for the target class, 0 for other classes)
+            binary_labels = (test_labels == class_label).astype(int)
 
-    def predict(self, test_img_path):
-        """
-        Predict the identity of a face in a test image.
+            # Get decision scores for the binary classification problem
+            decision_scores = classifier.decision_function(projected_test_data)
 
-        Parameters:
-        test_img_path (str): Path to the test image.
+            # Calculate ROC curve for the binary classification problem
+            fpr, tpr, _ = roc_curve(binary_labels, decision_scores[:, class_label])
 
-        Returns:
-        str: Name of the predicted person.
-        """
-        test_img = cv2.imread(test_img_path, cv2.IMREAD_GRAYSCALE)
-        test_img = self.align_face(test_img)
-        test_img = test_img.reshape(1, -1)
+            # Calculate AUC score for the binary classification problem
+            auc_score = auc(fpr, tpr)
 
-        # Project test image to PCA subspace
-        pca = PCA(n_components=self.num_components)
-        pca.fit(self.face_data)
-        projected_test_img = pca.transform(test_img)
+            # Store the ROC curve and AUC score
+            roc_curves[class_label] = {'fpr': fpr, 'tpr': tpr, 'auc': auc_score}
 
-        # Predict using SVM classifier
-        prediction = self.svm.predict(projected_test_img)
+        return roc_curves
 
-        # Map prediction to name
-        for name, label in self.names.items():
-            if label == prediction[0]:
-                predicted_name = name
-                break
-        return predicted_name
+    def load_test_data(self):
+        test_data_list = []
+        test_labels_list = []
+        for label, person_dir in enumerate(os.listdir(self.test_dirs)):
+            person_path = os.path.join(self.test_dirs, person_dir)
+            print(person_path)
+            for filename in os.listdir(person_path):
+                img_path = os.path.join(person_path, filename)
+                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                if img is not None:
+                    img = cv2.resize(img, (500, 500))
+                    test_data_list.append(img.flatten())
+                    test_labels_list.append(label)
+                else:
+                    print(f"Warning: Unable to read image '{img_path}'. Skipping...")
+            # test_data_list.append(np.array(test_images))
+            # test_labels_list.append(np.array(labels).flatten())
+        return test_data_list, test_labels_list
+
+    def plot_roc_curves(self, roc_curves):
+        plt.figure(figsize=(8, 6))
+        plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Random Guess')
+        names = ["Alaa", "elsayed", "Mandour", "M_ibrahim"]
+        for class_label, curve_data in roc_curves.items():
+            fpr = curve_data['fpr']
+            tpr = curve_data['tpr']
+            auc_score = curve_data['auc']
+            plt.plot(fpr, tpr, label=f'{names[class_label]} (AUC = {auc_score:.2f})')
+
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC Curves for Multi-class Classification')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+
+
 
 # Example usage:
-if __name__ == "__main__":
-    data_dir = 'dataset'  # Path to the directory containing the dataset of images
-    test_img_path = 'test_image.jpg'  # Path to the test image
-    eigen_face_recognition = EigenFaceRecognition(data_dir)
-    eigen_face_recognition.train()
-    predicted_name = eigen_face_recognition.predict(test_img_path)
-    print("Predicted Name:", predicted_name)
+faces_dir = '../cropped_faces'
+face_recognition = EigenFaceRecognition(faces_dir, faces_dir)
+preprocessed_images, labels = face_recognition.preprocess_images()
+pca, classifier = face_recognition.train_classifier(labels)
+results = []
+detector = OfflineFaceDetection()
+img_path = "../20240308_115108.jpg"
+img = cv2.imread(img_path)
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+faces = detector.detect_faces(img, 1.3, 10, 100)
+cropped_face = detector.crop_faces(gray, faces, "..", 1)
+for face in cropped_face:
+    # Test with a new image
+    predicted_label = face_recognition.recognize_faces(pca, classifier, face)
+    results.append(predicted_label)
+print(results)
+
+# Assuming you have test directories for each person stored in a list test_dirs
+
+# Example usage:
+# face_recognition = EigenFaceRecognition(faces_dir, faces_dir)
+# preprocessed_images, labels = face_recognition.preprocess_images()
+# pca, classifier = face_recognition.train_classifier(preprocessed_images, labels)
+#
+# # Load test data for each person from their respective directories
+# test_data_list, test_labels_list = face_recognition.load_test_data()
+#
+# # Visualize ROC curves for each person
+# curves = face_recognition.calculate_roc_curves_for_classes(pca, classifier, test_data_list, test_labels_list)
+# face_recognition.plot_roc_curves(curves)
