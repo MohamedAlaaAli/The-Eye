@@ -2,6 +2,7 @@ from PyQt6 import QtWidgets, uic
 from PyQt6.QtWidgets import QVBoxLayout, QFileDialog, QMessageBox, QInputDialog
 from PyQt6.QtGui import QIcon
 import sys
+import cv2
 from src.ViewPort import ImageViewport
 from src.FaceDetection import OnlineFaceDetection, OfflineFaceDetection
 
@@ -30,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.detectFaces.clicked.connect(self.apply_face_detection)
         self.ui.offlineRadio.setChecked(True)
         self.ui.offlineRadio.toggled.connect(self.radioToggled)
-        self.ui.onlineRadio.toggled.connect(self.radioToggled)
+        # self.ui.onlineRadio.toggled.connect(self.radioToggled)
         self.ui.windowSlider.valueChanged.connect(self.update_label_text)
         self.ui.neighboursSlider.valueChanged.connect(self.update_label_text)
 
@@ -305,6 +306,27 @@ class MainWindow(QtWidgets.QMainWindow):
             self.out_ports[0].update_display()
         
 
+    def check_camera_connected(self):
+        """
+        Check if a camera is connected.
+
+        It checks if the camera is successfully opened and returns a boolean value indicating whether the camera is connected or not.
+
+        Returns:
+            bool: True if the camera is connected, False otherwise.
+        """
+        # Try to access the first camera (index 0)
+        cap = cv2.VideoCapture(0)
+
+        # Check if the camera is opened
+        connected = cap.isOpened()
+
+        # Release the capture object
+        cap.release()
+
+        return connected
+
+
     def apply_online_face_detection(self):
         """
         Apply online face detection to the first output viewport.
@@ -318,9 +340,12 @@ class MainWindow(QtWidgets.QMainWindow):
         Returns:
             None
         """
-        image_viewport = self.out_ports[0]
-        image_viewport.clear()
-        self.online_face_detector.run_face_detection(image_viewport)
+        if self.check_camera_connected():
+            image_viewport = self.out_ports[0]
+            image_viewport.clear()
+            self.online_face_detector.run_face_detection(image_viewport)
+        else:
+            self.show_error_message("Camera not connected")
   
 
     def show_error_message(self, message):
