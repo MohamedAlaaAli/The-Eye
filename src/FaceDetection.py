@@ -1,8 +1,7 @@
 import cv2
-import os
 
 class OfflineFaceDetection:
-    def __init__(self, cascade_path="../Classifier/haarcascade_frontalface_default.xml"):
+    def __init__(self, cascade_path="Classifier/haarcascade_frontalface_default.xml"):
         """
         Initialize the FaceDetection object with the path to the Haar cascade file.
 
@@ -30,7 +29,7 @@ class OfflineFaceDetection:
             return faces
 
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred in face detection: {e}")
             return None
 
     def draw_faces(self, image, faces, output_path=None):
@@ -60,35 +59,34 @@ class OfflineFaceDetection:
             return segmented_image
 
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred in drawing: {e}")
             return None
 
-    def crop_faces(self, image, faces, output_dir, i):
+    def crop_faces(self, image, faces):
         """
-        Crop the detected faces from the input image and save them as separate files.
+    	Crop the detected faces from the input image and save them as separate files.
 
-        Parameters:
-            faces (list): A list of tuples containing the coordinates of the detected faces.
-            output_dir (str): Directory to save the cropped face images.
+    	Parameters:
+    	    image: The input image containing the faces.
+    	    faces: A list of tuples containing the coordinates of the detected faces.
+    	    output_dir: Directory to save the cropped face images.
+    	    i: An index to differentiate the saved face images.
 
-        Returns:
-            None
-        """
+    	Returns:
+    	    cropped_faces: A list of cropped face images saved as separate files.
+    	"""
         try:
             cropped_faces = []
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            for k, (x, y, w, h) in enumerate(faces):
+
+            for  (x, y, w, h) in faces:
                 # Crop the detected face region
                 face = image[y:y+h, x:x+w]
                 cropped_faces.append(face)
-                # Save the cropped face as a separate image
-                cv2.imwrite(f'{output_dir}/m_ibrahim_detected_face_{i}.jpg', face)
-                print(f"Face {i+1} saved at {output_dir}/detected_face_{i}.jpg")
 
             return cropped_faces
+        
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred in cropping: {e}")
 
 
 
