@@ -1,6 +1,6 @@
 from PyQt6 import QtWidgets, uic
-from PyQt6.QtWidgets import QVBoxLayout, QFileDialog, QMessageBox, QInputDialog
-from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QVBoxLayout, QFileDialog, QMessageBox, QInputDialog, QGraphicsDropShadowEffect
+from PyQt6.QtGui import QIcon, QColor
 import sys
 import cv2
 from src.ViewPort import ImageViewport
@@ -30,6 +30,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_ui_elements()
         self.init_sliders()
         self.update_label_text()
+        self.apply_shadows()
         self.ui.applyTech.clicked.connect(self.apply_technique)
         self.ui.detectionRadio.setChecked(True)
         self.ui.offlineRadio.setChecked(True)
@@ -42,6 +43,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.ui.resetButton.clicked.connect(self.reset)
         self.ui.clearButton.clicked.connect(self.clear_image)
+
+    def apply_shadows(self):
+        shadow_params = [
+            (3, 3, 60, 20, self.ui.tech_frame),
+            (3, 3, 60, 20, self.ui.mode_frame),
+            (3, 3, 60, 20, self.ui.prop_frame),
+            (3, 3, 60, 20, self.ui.input_frame),
+            (5, 5, 60, 20, self.ui.out_frame),
+        ]
+
+        for params in shadow_params:
+            self.add_shadow(*params)
+
+    def add_shadow(self, x_offset, y_offset, alpha, blur, widget):
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setOffset(x_offset, y_offset)
+        shadow.setBlurRadius(blur)
+        shadow.setColor(QColor(0, 0, 0, alpha))
+        widget.setGraphicsEffect(shadow)
 
 
     def load_ui_elements(self):

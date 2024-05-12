@@ -38,8 +38,14 @@
 }</string>
    </property>
    <layout class="QGridLayout" name="gridLayout_8" rowstretch="1,0,3">
+    <property name="topMargin">
+     <number>15</number>
+    </property>
     <item row="0" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout_6">
+      <property name="topMargin">
+       <number>0</number>
+      </property>
       <item>
        <spacer name="horizontalSpacer_3">
         <property name="orientation">
@@ -1204,7 +1210,8 @@ QPushButton:pressed {
            <item>
             <widget class="QWidget" name="input1" native="true">
              <property name="styleSheet">
-              <string notr="true">	border: 4px solid rgb(66, 92, 90) ;
+              <string notr="true">border-radius: 15px;
+border: 4px solid rgb(66, 92, 90);
 
 </string>
              </property>
@@ -1229,7 +1236,7 @@ QPushButton:pressed {
        </spacer>
       </item>
       <item>
-       <widget class="QFrame" name="frame_5">
+       <widget class="QFrame" name="out_frame">
         <property name="styleSheet">
          <string notr="true">QFrame{
 background-color: rgb(255, 255, 255);
@@ -1244,24 +1251,8 @@ border: 4px solid rgb(66, 92, 90);
          <enum>QFrame::Raised</enum>
         </property>
         <layout class="QGridLayout" name="gridLayout_7">
-         <item row="0" column="0">
+         <item row="1" column="0">
           <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0,0,2">
-           <item>
-            <spacer name="verticalSpacer_6">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeType">
-              <enum>QSizePolicy::Minimum</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>14</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <item>
@@ -1390,14 +1381,46 @@ background-color: rgb(207, 217, 216);
             </layout>
            </item>
            <item>
+            <spacer name="verticalSpacer_10">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Minimum</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>8</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
             <widget class="QWidget" name="output1" native="true">
              <property name="styleSheet">
-              <string notr="true">	border: 4px solid rgb(66, 92, 90) ;
-</string>
+              <string notr="true">border-radius: 15px;
+border: 4px solid rgb(66, 92, 90);</string>
              </property>
             </widget>
            </item>
           </layout>
+         </item>
+         <item row="0" column="0">
+          <spacer name="verticalSpacer_6">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Minimum</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>8</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </widget>
