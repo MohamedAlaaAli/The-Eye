@@ -5,6 +5,7 @@ import sys
 import cv2
 from src.ViewPort import ImageViewport
 from src.FaceDetection import OnlineFaceDetection, OfflineFaceDetection
+from src.FaceRecognation import EigenFaceRecognition
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -14,6 +15,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cascade_path = "Classifier/haarcascade_frontalface_default.xml"
         self.offline_face_detector = OfflineFaceDetection(self.cascade_path)
         self.online_face_detector = OnlineFaceDetection(self.cascade_path)
+        self.face_recognition = EigenFaceRecognition()
         self.detection_img = None
 
    
@@ -22,18 +24,24 @@ class MainWindow(QtWidgets.QMainWindow):
         Initialize the UI by loading the UI page, setting the window title, loading UI elements, and checking a specific UI element.
         """
         # Load the UI Page
-        self.ui = uic.loadUi('Mainwindow2.ui', self)
+        self.ui = uic.loadUi('LightWindow.ui', self)
         self.setWindowTitle("Image Processing ToolBox")
         self.setWindowIcon(QIcon("icons/image-layer-svgrepo-com.png"))
         self.load_ui_elements()
         self.init_sliders()
         self.update_label_text()
-        self.ui.detectFaces.clicked.connect(self.apply_face_detection)
+        self.ui.applyTech.clicked.connect(self.apply_technique)
+        self.ui.detectionRadio.setChecked(True)
         self.ui.offlineRadio.setChecked(True)
-        self.ui.offlineRadio.toggled.connect(self.radioToggled)
-        # self.ui.onlineRadio.toggled.connect(self.radioToggled)
+
+        self.ui.detectionRadio.toggled.connect(self.detection_radioToggled)
+        self.ui.offlineRadio.toggled.connect(self.mode_radioToggled)
+
         self.ui.windowSlider.valueChanged.connect(self.update_label_text)
         self.ui.neighboursSlider.valueChanged.connect(self.update_label_text)
+
+        self.ui.resetButton.clicked.connect(self.reset)
+        self.ui.clearButton.clicked.connect(self.clear_image)
 
 
     def load_ui_elements(self):
@@ -45,37 +53,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.out_ports = []
 
         # Define lists of original UI view ports, output ports
-        self.ui_view_ports = [self.ui.input1, self.ui.input2]
+        self.ui_view_ports = [self.ui.input1]
 
-        self.ui_out_ports = [self.ui.output1, self.ui.output2]
+        self.ui_out_ports = [self.ui.output1]
 
         # Create image viewports for input ports and bind browse_image function to the event
         self.input_ports.extend([
             self.create_image_viewport(self.ui_view_ports[i], lambda event, index=i: self.browse_image(event, index))
-            for i in range(2)])
+            for i in range(1)])
 
         # Create image viewports for output ports
         self.out_ports.extend(
-            [self.create_image_viewport(self.ui_out_ports[i], mouse_double_click_event_handler=None) for i in range(2)])
+            [self.create_image_viewport(self.ui_out_ports[i], mouse_double_click_event_handler=None) for i in range(1)])
         
-
         # Initialize import buttons
-        self.import_buttons = [self.ui.importButton, self.ui.importButton2]
+        self.import_buttons = [self.ui.importButton]
 
         # Bind browse_image function to import buttons
         self.bind_import_buttons(self.import_buttons, self.browse_image)
 
-        # Initialize reset buttons
-        self.reset_buttons = [self.ui.resetButton, self.ui.resetButton2]
-
-        # Bind reset_image function to reset buttons
-        self.bind_buttons(self.reset_buttons, self.reset_image)
-
-        # Initialize reset buttons
-        self.clear_buttons = [self.ui.clearButton, self.ui.clearButton2]
-
-        # Call bind_buttons function
-        self.bind_buttons(self.clear_buttons, self.clear_image)
 
 
     def bind_import_buttons(self, buttons, function):
@@ -161,11 +157,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.neighboursSlider.setValue(2)
 
 
-    def radioToggled(self):
+    def mode_radioToggled(self):
         if self.ui.offlineRadio.isChecked():
-            self.ui.inputLabel.show()
-            self.ui.input1.show()
+            self.ui.input_frame.show()
             self.ui.prop_frame.show()
+            self.ui.applyTech.show()
             self.input_ports[0].clear()
             self.out_ports[0].clear()
 
@@ -174,11 +170,32 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.online_face_detector.stop_face_detection()
         
         else:
-            self.ui.inputLabel.hide()
-            self.ui.input1.hide()
-            # Assuming self.ui.prop_frame is a QVBoxLayout
+            self.ui.input_frame.hide()
             self.ui.prop_frame.hide()
+            self.ui.applyTech.hide()
             self.apply_online_face_detection()
+
+
+    def detection_radioToggled(self):
+        if self.ui.detectionRadio.isChecked():
+            self.ui.mode_frame.show()
+            self.ui.applyTech.show()
+    
+        else:
+            self.ui.input_frame.show()
+            self.ui.applyTech.show()
+            self.ui.prop_frame.show()
+            self.ui.mode_frame.hide()
+            
+
+        if self.online_face_detector.is_running:
+                print("Stopping online face detector")
+                self.online_face_detector.stop_face_detection()
+
+        self.ui.offlineRadio.setChecked(True)
+        self.input_ports[0].clear()
+        self.out_ports[0].clear()
+
 
 
     def update_label_text(self):
@@ -198,19 +215,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.neighbours_val.setText(f"{neighbours_num}")
 
 
-    def clear_image(self, index):
+    def clear_image(self):
         """
         Clear the specifed input and output ports.
 
         Args:
             index (int): The index of the port to clear.
         """
-        print(f"Clearing port {index}")
-        self.input_ports[index].clear()
-        self.out_ports[index].clear()
+        self.input_ports[0].clear()
+        self.out_ports[0].clear()
 
 
-    def reset_image(self, index: int):
+    def reset(self):
         """
         Resets the image at the specified index in the input_ports list.
 
@@ -218,8 +234,15 @@ class MainWindow(QtWidgets.QMainWindow):
             event: The event triggering the image clearing.
             index (int): The index of the image to be cleared in the input_ports list.
         """
-        self.input_ports[index].set_image(self.image_path)
-        self.out_ports[index].set_image(self.image_path, grey_flag=True)
+        self.input_ports[0].set_image(self.image_path)
+        self.out_ports[0].set_image(self.image_path, grey_flag=True)
+        
+
+    def apply_technique(self):
+        if self.ui.detectionRadio.isChecked():
+            self.apply_face_detection()
+        else:
+            self.apply_face_recognition()
 
 
     def apply_face_detection(self):
@@ -289,21 +312,67 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def apply_offline_face_detection(self):
+        """
+        Apply offline face detection to the input image.
 
+        If the online face detector is running, it will be stopped.
+
+        Retrieves the detection parameters for window size, scale factor, and number of neighbors
+        and passes them to the offline face detector to detect faces.
+        The detected faces are then drawn on the image and the output is displayed.
+
+        Parameters:
+            self (object): The instance of the class.
+
+        Returns:
+            None
+        """
+        # Stop the online face detector if it is running
         if self.detection_img is not None:
             if self.online_face_detector.is_running:
                 print("Stopping online face detector")
                 self.online_face_detector.stop_face_detection()
 
+            # Get the detection parameters
+            window_min, scale_factor, neighbours_min = self.get_detection_parameters()
+
+            # Make a copy of the input image
+            image = self.detection_img.copy()
+
+            # Detect faces using the offline face detector
+            faces = self.offline_face_detector.detect_faces(
+                image, scale_factor=scale_factor, min_neighbours=neighbours_min, minSize=window_min)
+
+            # Draw the detected faces on the image
+            detected_image = self.offline_face_detector.draw_faces(image, faces)
+
+            # Set the output image and display it
+            self.out_ports[0].original_img = detected_image
+            self.out_ports[0].update_display()
+
+
+    def apply_face_recognition(self):
+        """
+        Apply face recognition to the input image.
+
+        Parameters:
+            self (object): The instance of the class.
+
+        Returns:
+            None
+        """
+        if self.detection_img is not None:
+
             window_min, scale_factor, neighbours_min = self.get_detection_parameters()
             image = self.detection_img.copy()
 
-            faces = self.offline_face_detector.detect_faces(
-                image, scale_factor= scale_factor, min_neighbours = neighbours_min, minSize = window_min)
-            detected_image = self.offline_face_detector.draw_faces(image, faces)
+            self.face_recognition.load_pca_and_classifier()
+            labels, recognised_img = self.face_recognition.predict(image, scale_factor, neighbours_min, window_min)
+            print(labels)
 
-            self.out_ports[0].original_img = detected_image
+            self.out_ports[0].original_img = recognised_img
             self.out_ports[0].update_display()
+
         
 
     def check_camera_connected(self):

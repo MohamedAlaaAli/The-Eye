@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
-from FaceDetection import OfflineFaceDetection
+from src.FaceDetection import OfflineFaceDetection
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 import pickle
@@ -160,10 +160,10 @@ class EigenFaceRecognition:
         """
         results = []
         labels = {
-            1: "Mohamed Alaa",
-            2: "Mohamed Abdulaal",
+            1: "M Alaa",
+            2: "Elsayed",
             3: "Mandour",
-            4: "Mohamed Ibrahim"
+            4: "M Ibrahim"
         }
         # Detect faces in the test image
         detector = OfflineFaceDetection()
@@ -192,7 +192,7 @@ class EigenFaceRecognition:
             cv2.rectangle(test_image, (x, y), (x+w, y+h), (0, 255, 0), 4)
 
             # Put label text above the face
-            cv2.putText(test_image, label_name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, fontScale= 0.9, color=(50, 255, 10), thickness= 3)
+            cv2.putText(test_image, label_name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, fontScale= 1, color=(50, 255, 10), thickness= 3)
 
             # Store the predicted label
             results.append(label_name)
