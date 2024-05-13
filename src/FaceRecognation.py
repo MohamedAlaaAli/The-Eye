@@ -8,6 +8,49 @@ from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 import pickle
 
+class PCA:
+    def __init__(self, n_components):
+        self.n_components = n_components
+        self.components = None
+        self.mean = None
+
+    def fit(self, X):
+        # Convert input to numpy array if it's not already
+        X = np.array(X)
+        
+        # Compute mean of the data
+        self.mean = np.mean(X, axis=0)
+        
+        # Center the data
+        X_centered = X - self.mean
+        
+        # Compute the covariance matrix
+        cov_matrix = np.cov(X_centered, rowvar=False)
+        
+        # Compute the eigenvectors and eigenvalues of the covariance matrix
+        eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+        
+        # Sort eigenvectors based on eigenvalues
+        eigenvectors = eigenvectors.T
+        sorted_indices = np.argsort(eigenvalues)[::-1]
+        sorted_eigenvectors = eigenvectors[sorted_indices]
+        
+        # Select the top n_components eigenvectors
+        self.components = sorted_eigenvectors[:self.n_components]
+
+    def transform(self, X):
+        # Convert input to numpy array if it's not already
+        X = np.array(X)
+        
+        # Center the data
+        X_centered = X - self.mean
+        
+        # Project the data onto the principal components
+        projected = np.dot(X_centered, self.components.T)
+        
+        return projected
+
+
 class EigenFaceRecognition:
     def __init__(self, faces_dir=None):
         self.faces_dir = faces_dir
@@ -199,26 +242,48 @@ class EigenFaceRecognition:
 
         return results, test_image
 
+    
+    def calculate_roc_curves_for_classes(self, pca, classifier, test_data, test_labels):
+        roc_curves = {}
 
-def main():
-    # Example usage:
-    face_recognition = EigenFaceRecognition()
-    face_recognition.load_pca_and_classifier()
-    img_path = "Images\Screenshot 2024-05-12 121822.png"
-    img = cv2.imread(img_path)
-    results, recognised_img = face_recognition.predict(img, 1.3, 10, 10)
-    print(results)
+        # Project the test data onto the eigenfaces
+        projected_test_data = pca.transform(test_data)
+        test_labels = np.array(test_labels)
+        # Iterate over each class
+        for class_label in range(len(classifier.classes_)):
+            # Create binary labels (1 for the target class, 0 for other classes)
+            binary_labels = (test_labels == class_label).astype(int)
 
-    # Show the image with detected faces and labels in full screen mode
-    # cv2.namedWindow("Detected Faces", cv2.WINDOW_NORMAL)
-    # cv2.setWindowProperty("Detected Faces", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            # Get decision scores for the binary classification problem
+            decision_scores = classifier.decision_function(projected_test_data)
 
-    # Show the image with detected faces and labels
-    cv2.imshow("Detected Faces", recognised_img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+            # Calculate ROC curve for the binary classification problem
+            fpr, tpr, _ = roc_curve(binary_labels, decision_scores[:, class_label])
 
-if __name__ == "__main__":
-    main()
+            # Calculate AUC score for the binary classification problem
+            auc_score = auc(fpr, tpr)
+
+            # Store the ROC curve and AUC score
+            roc_curves[class_label] = {'fpr': fpr, 'tpr': tpr, 'auc': auc_score}
+
+        return roc_curves
+
+    
+    def plot_roc_curves(self, roc_curves):
+        plt.figure(figsize=(8, 6))
+        plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Random Guess')
+        names = ["Alaa", "Elsayed", "Mandour", "M_ibrahim"]
+        for class_label, curve_data in roc_curves.items():
+            fpr = curve_data['fpr']
+            tpr = curve_data['tpr']
+            auc_score = curve_data['auc']
+            plt.plot(fpr, tpr, label=f'{names[class_label]} (AUC = {auc_score:.2f})')
+
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC Curves for Multi-class Classification')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
 
 
