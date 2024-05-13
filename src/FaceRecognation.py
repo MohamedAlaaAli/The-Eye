@@ -203,10 +203,10 @@ class EigenFaceRecognition:
         """
         results = []
         labels = {
-            1: "M Alaa",
-            2: "Elsayed",
-            3: "Mandour",
-            4: "M Ibrahim"
+            0: "Alaa",
+            1: "Elsayed",
+            2: "Mandour",
+            3: "Ibrahim"
         }
         # Detect faces in the test image
         detector = OfflineFaceDetection()
